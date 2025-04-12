@@ -167,17 +167,18 @@ fn main() {
         .args(&["--static-nolibc", "--color=always",
             "--no-fallback", "--link-at-build-time", "--exact-reachability-metadata", "--enable-native-access=ALL-UNNAMED",
             "--initialize-at-build-time", "--initialize-at-run-time=com.microsoft.z3.Native",
-            "-cp", class_pathes.as_str(), "Run", "-o", output_dir.join("dryadsynth-graalvm").to_str().unwrap()])
+            //used to change "dispatcher.RpcServer" to "Run"
+            "-cp", class_pathes.as_str(), "dispatcher.RpcServer", "-o", output_dir.join("dryadsynth-graalvm").to_str().unwrap()])
         .status()
         .expect("Failed to execute native-image command");
         
     if !status.success() {
         panic!("native-image generation failed: {}", status);
     }
-    let status = Command::new(output_dir.join("dryadsynth-graalvm").to_str().unwrap())
-        .status()
-        .expect("Failed to execute dryadsynth-graalvm");
-    assert!(status.success(), "Failed to execute dryadsynth-graalvm");
+    // let status = Command::new(output_dir.join("dryadsynth-graalvm").to_str().unwrap())
+    //     .status()
+    //     .expect("Failed to execute dryadsynth-graalvm");
+    // assert!(status.success(), "Failed to execute dryadsynth-graalvm");
 
     {
         
