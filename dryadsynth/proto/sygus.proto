@@ -1,0 +1,13 @@
+syntax = "proto3";
+package sygus;
+
+message SygusProblem {
+    string logic = 1;
+    string program = 2;
+}
+
+message SygusSolution {
+    bool success = 1;
+    string answer = 2;
+    string errorMsg = 3;
+}

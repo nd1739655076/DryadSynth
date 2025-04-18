@@ -21,4 +21,11 @@ fn main() {
         .file(dir2.join("parser.c"))
         .file(dir2.join("scanner.cc"))
         .compile("tree-sitter-markdown");
+
+    prost_build::compile_protos(
+        &["../dryadsynth/proto/sygus.proto"],
+        &["../dryadsynth/proto"],
+    ).unwrap();
+
+    
 }

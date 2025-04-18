@@ -55,10 +55,13 @@ spin = "0.9.8"
 openai = "1.0.0-alpha.13"
 iter_fixed = "0.3.1"
 lazy_static = "1.5.0"
+prost = "0.12"
+prost-types = "0.12"
 
 [features]
 dhat-heap = []
 
 [build-dependencies]
 cc = "1.2.17"
+prost-build = "0.12"
 
