@@ -1,58 +1,73 @@
 package dispatcher;
 
-import sygus.Sygus;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
-import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import sygus.Sygus.SygusProblem;
+import sygus.Sygus.SygusSolution;
 
-public final class RpcServer {
-    // private static byte[] solve(byte[] input) {
-    //     return input; //alternate with the real solver algorithm
-    // }
+public class RpcServer {
+    public static void main(String[] args) {
+        try {
+            //Read protobuf binary input
+            byte[] inBuf = Files.readAllBytes(Paths.get("/tmp/input.pb"));
+            SygusProblem problem = SygusProblem.parseFrom(inBuf);
+            System.out.println("[RpcServer] Loaded problem.");
 
-    public static void main(String[] args) throws Exception {
-        int port = args.length > 0 ? Integer.parseInt(args[0]) : 24961;
-        try (ServerSocket server = new ServerSocket(port)) {
-            System.out.println("[DryadSynth] RPC server listening on " + port);
-            while (true) {
-                final Socket client = server.accept();
-                new Thread(() -> handle(client)).start();
+            // Write to temporary .sl file
+            String tempSlPath = "/tmp/problem.sl";
+            String logic = problem.getLogic();
+            String program = problem.getProgram();
+
+            String content = "(set-logic " + logic + ")\n" + program + "\n";
+            Files.writeString(Path.of(tempSlPath), content);
+            System.out.println("[RpcServer] Problem written to " + tempSlPath);
+
+            // Call `java Run <problem.sl>` via ProcessBuilder
+            ProcessBuilder pb = new ProcessBuilder("java",
+                                                "-Djava.library.path=lib",
+                                                "-cp", "lib/antlr.jar:lib/protobuf-java-3.25.3.jar:lib/com.microsoft.z3.jar:lib/jopt-simple.jar:classes",
+                                                    "Run", tempSlPath);
+
+            pb.inheritIO(); // show output directly can be deleted later
+            Process p = pb.start();
+            int exitCode = p.waitFor();
+
+            // Handle success/failure
+            if (exitCode != 0) {
+                System.err.println("[RpcServer] Run.java failed with exit code " + exitCode);
+                writeError("Failed to solve problem.");
+                return;
             }
+
+            // Read solution from stdout or parse file
+            String answer = Files.readString(Paths.get("/tmp/result.sl"));
+            SygusSolution solution = SygusSolution.newBuilder()
+                                                  .setSuccess(true)
+                                                  .setAnswer(answer)
+                                                  .setErrorMsg("")
+                                                  .build();
+            Files.write(Paths.get("/tmp/output.pb"), solution.toByteArray());
+
+            System.out.println("[RpcServer] Solution written to /tmp/output.pb");
+
+        } catch (Exception e) {
+            System.err.println("[RpcServer] Internal Error: " + e.getMessage());
+            e.printStackTrace();
+            try {
+                writeError(e.toString());
+            } catch (IOException ignored) {}
         }
     }
 
-    private static void handle(Socket client) {
-        try (DataInputStream  din  = new DataInputStream(client.getInputStream());
-             DataOutputStream dout = new DataOutputStream(client.getOutputStream())) {
-            // Read the request
-            int len = din.readInt();
-            byte[] inBuf = new byte[len];
-            din.readFully(inBuf);
-            // Decode Protobuf
-            Sygus.SygusProblem problem = Sygus.SygusProblem.parseFrom(inBuf);
-            String logic = problem.getLogic();
-            String program = problem.getProgram();
-            System.out.println("[RPC Server] Received logic:" + logic);
-            System.out.println("[RPC Server] Received program:" + program);
-
-            //TODO Call server. Now is simple echo result
-            String result = "(define-fun max2 ...)";
-            boolean success = true;
-            
-            // Response
-            Sygus.SygusSolution solution = Sygus.SygusSolution.newBuilder()
-                                                .setSuccess(success)
-                                                .setAnswer(result)
-                                                .setErrorMsg("Error from SygusSolution")
-                                                .build();
-            byte[] outBuf = solution.toByteArray();
-            dout.writeInt(outBuf.length);
-            dout.write(outBuf);
-            dout.flush();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private static void writeError(String msg) throws IOException {
+        SygusSolution solution = SygusSolution.newBuilder()
+                .setSuccess(false)
+                .setAnswer("")
+                .setErrorMsg(msg)
+                .build();
+        Files.write(Paths.get("/tmp/output.pb"), solution.toByteArray());
     }
 }

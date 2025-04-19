@@ -9,6 +9,7 @@ import java.util.logging.SimpleFormatter;
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import java.io.*;
 
 public class Run {
 	private static void runBV(String fileName) throws Exception {
@@ -235,26 +236,34 @@ public class Run {
 		// ANTLRInputStream is deprecated as of antlr 4.7, use it with antlr 4.5 only
 		ANTLRInputStream resultBuffer;
 		SygusFormatter formatter = new SygusFormatter();
+		PrintWriter outWriter = new PrintWriter("/tmp/result.sl", "UTF-8");
 		for (DefinedFunc df: results) {
 			String rawResult;
-			if (extractorV2.isGeneral||extractorV1.isGeneral) {
+			if (extractorV2.isGeneral || extractorV1.isGeneral) {
 				rawResult = df.toString();
 			} else {
 				rawResult = df.toString(true);
 			}
+			String finalResult;
 			if (rawResult.length() <= 65535) {
 				resultBuffer = new ANTLRInputStream(rawResult);
 				lexer = new SygusLexer(resultBuffer);
 				tokens = new CommonTokenStream(lexer);
 				parser = new SygusParser(tokens);
-				System.out.println(formatter.visit(parser.start()));
+				finalResult = formatter.visit(parser.start());
 			} else {
 				// When output size is too large, run regexp replace instead
 				rawResult = rawResult.replaceAll("\\(\\s*-\\s+(\\d+)\\s*\\)", "-$1");
 				rawResult = rawResult.replaceAll("\\s+", " ");
-				System.out.println(rawResult);
+				finalResult = rawResult;
 			}
+			System.out.println(finalResult);
+			//write to /tmp/result.sl
+			outWriter.println(finalResult);
 		}
+
+		outWriter.close();
+
 
 		long estimatedTime = System.currentTimeMillis() - startTime;
 		logger.info("Runtime: " + estimatedTime);
