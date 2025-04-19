@@ -41,9 +41,8 @@ impl Timestamps {
     }
 }
 
-mod graalvm;
-mod z3;
-
+use dryadsynth::graalvm;
+use dryadsynth::z3;
 fn main() {
     println!("cargo::rerun-if-changed=src");
     let output_dir_str = env::var("OUT_DIR").unwrap();

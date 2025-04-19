@@ -30,8 +30,8 @@ fn binary_file<P: AsRef<std::path::Path>>(temp_path: P, binary_data: &[u8]) -> R
 
 #[cfg(target_os = "linux")]
 fn load_z3() -> Result<PathBuf, Box<dyn std::error::Error>> {
-    let libz3java_so = include_bytes!(concat!(env!("OUT_DIR"), "/z3/build/libz3java.so"));
-    let libz3_so = include_bytes!(concat!(env!("OUT_DIR"), "/z3/build/libz3.so"));
+    let libz3java_so = fs::read("z3/build/libz3java.so")?;
+    let libz3_so = fs::read("z3/build/libz3.so")?;
     let mut temp_path = env::temp_dir();
     temp_path.push("z3-4.8.5");
     temp_path.push("lib");
@@ -39,8 +39,8 @@ fn load_z3() -> Result<PathBuf, Box<dyn std::error::Error>> {
     if !temp_path.exists() {
         create_dir_all(&temp_path)?;
         
-        binary_file(temp_path.join("libz3java.so"), libz3java_so)?;
-        binary_file(temp_path.join("libz3.so.4.8"), libz3_so)?;
+        binary_file(temp_path.join("libz3java.so"), &libz3java_so)?;
+        binary_file(temp_path.join("libz3.so.4.8"), &libz3_so)?;
     }
     
     Ok(temp_path)
@@ -80,14 +80,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // The build.rs script should generate or copy the binary to the OUT_DIR.
     // Here we include that binary at compile time.
     // Make sure your build.rs puts the binary in $OUT_DIR as "embedded_binary"
-    let binary_data = include_bytes!(concat!(env!("OUT_DIR"), "/dryadsynth-graalvm"));
-
-    let dryadsynth_filename = concat!("dryadsynth-", include_str!(concat!(env!("OUT_DIR"), "/dryadsynth-graalvm.md5sum")));
+    let binary_data = fs::read("target/dryadsynth-graalvm")?;
+    let md5sum = fs::read_to_string("target/dryadsynth-graalvm.md5sum")?;
+    let dryadsynth_filename = format!("dryadsynth-{}", md5sum.trim());
 
     let mut temp_path = env::temp_dir();
     temp_path.push(dryadsynth_filename);
 
-    binary_file(&temp_path, binary_data)?;
+    binary_file(&temp_path, &binary_data)?;
 
     unsafe {
         #[cfg(target_os = "linux")]
