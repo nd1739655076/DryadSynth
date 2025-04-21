@@ -229,7 +229,7 @@ public class Run {
         	for (String str : strs) {
         		System.out.println(str);
         	}
-        	System.exit(0);
+        	//System.exit(0);
         }
 
 
@@ -268,7 +268,7 @@ public class Run {
 		long estimatedTime = System.currentTimeMillis() - startTime;
 		logger.info("Runtime: " + estimatedTime);
 
-		System.exit(0);
+		//System.exit(0);
 
 	}
 }
