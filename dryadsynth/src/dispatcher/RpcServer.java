@@ -26,7 +26,7 @@ public class RpcServer {
                 String slContent = Files.readString(Path.of(inputPath));
                 slContent = slContent.replace("\r\n", "\n").replace("\r", "\n");
                 String logic = extractLogic(slContent);
-                String cleaned = slContent.replaceAll("\\(set-logic\\s+[^\\)]+\\)", "").trim(); // 去掉重复 logic
+                String cleaned = slContent.replaceAll("\\(set-logic\\s+[^\\)]+\\)", "").trim();
 
                 problem = SygusProblem.newBuilder()
                         .setLogic(logic)
